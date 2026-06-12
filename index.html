@@ -408,15 +408,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;o
     </div>
     <button class="pl-close" onclick="togglePlaylist()">✕</button>
   </div>
-  <iframe
-    id="pl-spotify"
-    src="https://open.spotify.com/embed/playlist/2yX3NlrhsFB55eXods3WlI?utm_source=generator&theme=0"
-    width="100%"
-    height="100%"
-    frameborder="0"
-    allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-    loading="lazy"
-    style="flex:1;border:none;display:block;"></iframe>
+  <div id="pl-spotify" style="flex:1;min-height:0;"></div>
 </div>
 
 <!-- ─── LIGHTBOX ─────────────────────────────────────── -->
@@ -669,12 +661,22 @@ const PLACES = [
 /* ═══════════════════════════════════════════════════════
    STATE
 ═══════════════════════════════════════════════════════ */
-let playing   = false;
-let mapInited = false;
-let lbItems   = [];
-let lbIdx     = 0;
-let bgVidIdx  = 0;
-const aud     = document.getElementById('aud');
+let playing          = false;
+let mapInited        = false;
+let lbItems          = [];
+let lbIdx            = 0;
+let bgVidIdx         = 0;
+let spotifyController = null;
+const aud            = document.getElementById('aud');
+
+// Spotify Embed Controller API
+window.onSpotifyIframeApiReady = (IFrameAPI) => {
+  IFrameAPI.createController(
+    document.getElementById('pl-spotify'),
+    {uri: 'spotify:playlist:2yX3NlrhsFB55eXods3WlI', theme: 1},
+    (ctrl) => { spotifyController = ctrl; }
+  );
+};
 
 /* ═══════════════════════════════════════════════════════
    BOOT
@@ -981,10 +983,10 @@ function initMap() {
     const lbl = document.querySelector('.float-info span');
     if (lbl) lbl.textContent = `${p.music.title} · ${p.music.artist}`;
 
-    // Troca o Spotify embed para a faixa específica
-    const iframe = document.getElementById('pl-spotify');
-    if (iframe && p.music.spotifyId) {
-      iframe.src = `https://open.spotify.com/embed/track/${p.music.spotifyId}?utm_source=generator&theme=0`;
+    // Navega para a faixa dentro da playlist usando o Embed Controller
+    if (spotifyController && p.music.spotifyId) {
+      spotifyController.loadUri('spotify:track:' + p.music.spotifyId);
+      spotifyController.play();
     }
   }
 }
@@ -1020,5 +1022,6 @@ function initObserver() {
   frame();
 })();
 </script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </body>
 </html>
