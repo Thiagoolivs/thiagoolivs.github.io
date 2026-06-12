@@ -668,16 +668,16 @@ let lbIdx            = 0;
 let bgVidIdx         = 0;
 let spotifyController = null;
 const aud            = document.getElementById('aud');
-const BASE_VOL       = 0.30;  // volume normal do site
-const DUCK_VOL       = 0.06;  // volume quando Spotify está tocando
+const BASE_VOL = 0.30;
 
-function fadeVol(target, ms = 900) {
+function fadeVol(target, ms = 700, onDone) {
   const from = aud.volume;
   const start = performance.now();
   const tick = (now) => {
     const t = Math.min((now - start) / ms, 1);
     aud.volume = from + (target - from) * t;
     if (t < 1) requestAnimationFrame(tick);
+    else if (onDone) onDone();
   };
   requestAnimationFrame(tick);
 }
@@ -690,7 +690,17 @@ window.onSpotifyIframeApiReady = (IFrameAPI) => {
     (ctrl) => {
       spotifyController = ctrl;
       ctrl.addListener('playback_update', (state) => {
-        fadeVol(state.isPaused ? BASE_VOL : DUCK_VOL);
+        if (!state.isPaused) {
+          // Spotify tocando → fade out e pausa
+          fadeVol(0, 700, () => { if (playing) aud.pause(); });
+        } else {
+          // Spotify pausou → retoma e fade in
+          if (playing) {
+            aud.volume = 0;
+            aud.play().catch(()=>{});
+            fadeVol(BASE_VOL, 700);
+          }
+        }
       });
     }
   );
